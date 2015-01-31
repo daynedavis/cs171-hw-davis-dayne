@@ -14,6 +14,6 @@ git pull homework
 For details on how to submit take a look at [Section 1](https://github.com/CS171/2015-section1).
 
 ---
-**Name**:
+**Name**: Dayne Davis
 
-**Email**:
+**Email**: daynedavis5@gmail.com
