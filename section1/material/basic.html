@@ -8,6 +8,16 @@
   <body>
     <h1>Welcome to CS171</h1>
     <p>Data visualization</p>
-    <svg></svg>
+    <svg><circle cx="200" cy="200" r="50"></circle></svg>
+    <script>
+      var svg = d3.select("svg");
+
+      var circle = svg.append('circle');
+      circle
+        .attr('cx', 400)
+        .attr('cy', 400)
+        .attr('r', 60)
+        .style('fill', 'yellow');
+    </script>
   </body>
 </html>

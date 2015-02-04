@@ -15,3 +15,6 @@ h1 {
 p {
   font-size: 16px;
 }
+circle {
+  fill: orange;
+}
