@@ -32,9 +32,9 @@ Once you are signed up to the Piazza course forum, introduce yourself to your cl
 
 ## Problem 2 - Introduction to Git
 
-Attend the first section and [follow the instructions](https://github.com/CS171/2015-section1) on setting up your **private** git repository for the homework.
+Attend the first section and [follow the instructions](../section1#git) on setting up your **private** git repository for the homework.
 
-In your repository, edit the `README.md` file to add your name and email address. Commit your changes.
+Edit the `README.md` file at the root of your respository to add your name and email address. Commit your changes.
 
 In the `hw0` directory, add a text file named `hw0.txt`. The text file can be empty. Commit and push your changes.
 
