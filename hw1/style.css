@@ -1,0 +1,26 @@
+tr:nth-child(odd)		{ background-color:#fff; }
+tr:nth-child(even)		{ background-color:#c1bbbb; }
+table {
+	text-align: left;
+	border-spacing: 0;
+	border: 1px solid #000;
+}
+td {
+	text-align: left;
+	border-spacing: 0;
+	border: 1px solid #000;
+}
+tbody tr:hover {
+	background-color: #FAFF13;
+}
+graph {
+	width: 800px;
+	margin: 25px auto;
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+}
+rect {
+		fill-opacity: 0.8;
+}
+rect:hover {
+		fill-opacity: 1;
+}

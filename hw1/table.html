@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+	<p>Time Updated: 1995
+		<input id="slider" type="range" name="years" value="1995" min="1995" max="2012">2012</p>
+	<p>Filter By:
+		<input type="checkbox" class="radios" name="countryFilter" value="Americas">Americas
+		<input type="checkbox" class="radios" name="countryFilter" value="Africa">Africa
+		<input type="checkbox" class="radios" name="countryFilter" value="Asia">Asia
+		<input type="checkbox" class="radios" name="countryFilter" value="Europe">Europe
+		<input type="checkbox" class="radios" name="countryFilter" value="Oceania">Oceania</p>
+	<p>Aggregation:
+		<input type="radio" class="radios" name="Aggregation" value="None" checked="checked">None
+		<input type="radio" class="radios" name="Aggregation" value="by Continent">by Continent</p>
+	<div id="countryTable"></div>
+	<div id="graph"></div>
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<script>
+		var margin = {
+			top: 40,
+			bottom: 10,
+			left: 20,
+			right: 20
+		};
+		var width = 800 - margin.left - margin.right;
+		var height = 600 - margin.top - margin.bottom;
+
+		// Creates sources <svg> element
+		var svg = d3.select("body").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom);
+
+		// Group used to enforce margin
+		var g = svg.append("g")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+		var bar_height = 10;
+    var selectedCountries = [];
+    var aggregated = false;
+    var active = ['none', 1];
+
+
+
+
+
+		var data;
+		d3.json("data/countries_1995_2012.json", function(error, json) {
+			data = json;
+			update(data, 0, false);
+
+      var max = function () {
+        eachMax = data.map(function(d) {
+          return d3.max(d.years,function(a) {
+            return a['population'];
+          });
+        });
+        return d3.max(eachMax);
+      };
+
+      var xScale = d3.scale.linear().range([0, width]);
+		});
+
+
+    function orderCheck(header) {
+      if (header == active[0]) {
+        active[1] = -active[1];
+      }
+      else {
+        active[0] = header;
+        active[1] = 1;
+      }
+    }
+		function getAggregatedData(data, year) {
+      var filtered_data = data.filter(function(d) {
+        if (selectedCountries.length > 0) {
+          return selectedCountries.indexOf(d.continent) > -1;
+        } else {
+          return true;
+        }
+      });
+			var nested_rows = d3.nest()
+				.key(function(d) {
+					return d.continent;
+				})
+				.rollup(function(leaves) {
+					return {
+						population: d3.sum(leaves, function(g) {
+							return +g.years[year].population;
+						}),
+						gdp: d3.sum(leaves, function(g) {
+							return +g.years[year].gdp;
+						}),
+						life_expectancy: d3.mean(leaves, function(g) {
+							return +g.years[year].life_expectancy;
+						}),
+						name: leaves[0].name,
+					};
+				})
+				.entries(filtered_data);
+			return nested_rows;
+		}
+
+		d3.selectAll("input").each(function(d) {
+			if (this.type == "checkbox") {
+				d3.select(this).on("change", function() {
+          selectedCountries = [];
+					d3.selectAll("input").each(function(d) {
+						if (d3.select(this).attr("type") == "checkbox" && d3.select(this).node().checked) {
+							selectedCountries.push(this.value);
+						}
+					});
+					var filtered_data = data.filter(function(d) {
+						if (selectedCountries.length > 0) {
+							return selectedCountries.indexOf(d.continent) > -1;
+						} else {
+							return true;
+						}
+					});
+					d3.selectAll('table').remove();
+					slider = d3.select("#slider");
+          if (aggregated) {
+            update(getAggregatedData(data, slider[0][0].value - 1995), slider[0][0].value - 1995, aggregated);
+          }
+          else {
+            update(filtered_data, slider[0][0].value - 1995, aggregated);
+          }
+				});
+			} else if (this.type == 'range') {
+				d3.select(this).on("input", function() {
+					d3.selectAll('table').remove();
+					agg = d3.select('input[name="Aggregation"]:checked');
+					if (agg[0][0].value == 'by Continent') {
+						update(getAggregatedData(data, this.value - 1995), this.value - 1995, aggregated);
+					} else {
+						update(data, this.value - 1995, aggregated);
+					}
+				});
+			} else if (this.type == 'radio') {
+				d3.select(this).on("change", function() {
+					if (this.value == 'by Continent') {
+            aggregated = true;
+						slider = d3.select("#slider");
+						nested_rows = getAggregatedData(data, slider[0][0].value - 1995);
+						d3.selectAll('table').remove();
+						update(nested_rows, slider[0][0].value - 1995, true);
+					} else {
+            aggregated = false;
+						d3.selectAll('table').remove();
+						slider = d3.select("#slider");
+            if (aggregated) {
+              update(getAggregatedData(data), slider[0][0].value - 1995, aggregated);
+            }
+            else {
+              update(data, slider[0][0].value - 1995, aggregated);
+            }
+					}
+				});
+			}
+		});
+
+		function update(data, year, aggregated) {
+      d3.selectAll('table').remove();
+			var columns = ['name', 'continent', 'gdp', 'life_expectancy', 'population', 'year'];
+			var comma = d3.format(",");
+
+			var table = d3.select("#countryTable").append("table"),
+				thead = table.append("thead")
+				.attr("class", "thead");
+			tbody = table.append("tbody");
+
+			table.append("caption")
+				.html("World Countries Ranking");
+
+			thead.append("tr").selectAll("th")
+				.data(columns)
+				.enter()
+				.append("th")
+				.text(function(d) {
+					return d;
+				})
+				.on("click", function(header, i) {
+          if (header == 'population' || header == 'gdp' || header == 'life_expectancy') {
+            orderCheck(header);
+    				data.sort(function(a, b){
+              if (active[1] == 1) {
+                return b.years[year][header] - a.years[year][header];
+              }
+              else {
+                return a.years[year][header] - b.years[year][header];
+              }
+    				});
+            update(data, year, aggregated);
+    			}
+          else if (header == 'name' || header == 'continent') {
+            orderCheck(header);
+    				data.sort(function(a, b){
+    					first = a[header].toLowerCase();
+    					second = b[header].toLowerCase();
+
+              if (active[1] == 1) {
+                return (first < second) ? -1 : (first > second) ? 1 : 0;
+              }
+              else {
+                return (first > second) ? -1 : (first < second) ? 1 : 0;
+              }
+    				});
+            update(data, year, aggregated);
+    			}
+				});
+
+			var rows = tbody.selectAll("tr.row")
+				.data(data)
+				.enter()
+				.append("tr").attr("class", "row");
+
+			var cells = rows.selectAll("td")
+				.data(function(row) {
+					return d3.range(columns.length).map(function(column, i) {
+						if (!aggregated) {
+							if (columns[i] == 'life_expectancy') {
+								return d3.round(row.years[year][columns[i]], 1);
+							} else if (columns[i] == 'population') {
+								return comma(row.years[year][columns[i]]);
+							} else if (columns[i] == 'gdp') {
+								return d3.round(row.years[year][columns[i]] / 1e9, 1) + 'G';
+							} else if (columns[i] == 'year') {
+								return row.years[year][columns[i]];
+							} else {
+								return row[columns[i]];
+							}
+						} else {
+							if (columns[i] == 'life_expectancy') {
+								return d3.round(row.values[columns[i]], 1);
+							} else if (columns[i] == 'population') {
+								return comma(row.values[columns[i]]);
+							} else if (columns[i] == 'gdp') {
+								return d3.round(row.values[columns[i]] / 1e9, 1) + ' G';
+							} else if (columns[i] == 'year') {
+								return year + 1995;
+							} else {
+								return row.key;
+							}
+						}
+					});
+				})
+				.enter()
+				.append("td")
+				.text(function(d) {
+					return d;
+				});
+		}
+
+		function updateGraph(data, year) {
+			var rect = g.selectAll("rect")
+				.data(data)
+				.enter().append("rect")
+				.attr("fill", "steelblue")
+				.attr("width", function(d, i) {
+					return scale(d.years[year]["population"]);
+				})
+				.attr("height", bar_height)
+				.attr("x", 0)
+				.attr("y", function(d, i) {
+					// this could instead use an ordinal scale and rangeRoundBands()
+					return (bar_height + 2) * i;
+				});
+
+			rect.append("title")
+				.text(function(d, i) {
+					return d["name"];
+				});
+		}
+	</script>
+</body>
+
+</html>

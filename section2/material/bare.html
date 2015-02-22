@@ -38,6 +38,37 @@
   ////// YOUR CODE ////////
   /////////////////////////
 
+  // svg.append('rect')
+  //   .attr('fill', 'steelblue')
+  //   .attr('width', 100)
+  //   .attr('height', 25)
+  //   .attr('x', 50)
+  //   .attr('y', 50);
+
+  var scale = d3.scale.linear()
+    .domain([0, 200])
+    .range([0, height]);
+
+  var colorScale = d3.scale.linear()
+    .domain([0, 200])
+    .range(['yellow', 'red']);
+
+  var rect = svg.selectAll('rect')
+    .data([10, 145, 105, 169, 80, 55, 200])
+    .enter().append('rect');
+  rect
+  .attr('fill', function(d,i){
+    return colorScale(d);
+  })
+  .attr('width', function(d,i){
+    return d;
+  })
+  .attr('height', 25)
+  .attr('x', 50)
+  .attr('y', function(d,i){
+    return 50 * i;
+  });
+
   </script>
 </body>
 </html>
