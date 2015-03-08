@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Homework 2 Graph</title>
+<style>
+	.link {
+		stroke: gray;
+		stroke-width: .8px;
+	}
+	.node {
+		fill: white;
+		stroke: #000;
+		stroke-width: .9px;
+	}
+	.node text {
+		fill: black;
+	}
+	.node:hover {
+		fill: black;
+	}
+	text {
+		font-family: 'Arial';
+	}
+</style>
+
+<body>
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+
+	<script>
+		var margin = {
+			top: 50,
+			bottom: 10,
+			left: 300,
+			right: 40
+		};
+		var width = screen.width;
+		var height = 1500;
+
+		var svg = d3.select("body").append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		var fill = d3.scale.category10();
+
+		function maxValue(D, encodeBy) {
+			eachMax = D.map(function(d) {
+				return d[encodeBy];
+			});
+			return d3.max(eachMax);
+		}
+
+		var yScale = d3.scale.linear().range([10, height - 10]);
+		var xScale = d3.scale.linear().range([10, width - 10]);
+
+		var graph = {
+			nodes: [],
+			links: []
+		};
+		var storedLinks = [];
+		var nb_nodes = 120,
+			nb_cat = 10;
+		var link = [];
+
+		var node_scale = d3.scale.linear().domain([0, nb_cat]).range([5, 50]);
+
+		d3.json("data/countries_1995_2012.json", function(data) {
+
+			data.forEach(function(d, i) {
+				d.population = d.years[17].population;
+				d.gdp = d.years[17].gdp;
+				d.life_expectancy = d.years[17].life_expectancy;
+				d.top_partners = d.years[17].top_partners;
+				delete d.years;
+				graph.nodes.push(d);
+			});
+
+
+			// Generate the force layout
+			var force = d3.layout.force()
+				.size([width, screen.height])
+				.on("tick", tick)
+				.charge(-50);
+
+			function tick(e) {
+				// alpha is the cooling factor: it gets progressively smaller as the simulation converges
+				var k = 0.06 * e.alpha;
+
+				// applies a custom force alternating between pushing nodes towards one of the four corners
+				graph.nodes.forEach(function(d, i) {
+
+					if (document.getElementById('quarters').checked) {
+						if (d.continent == 'Africa') {
+							d.x += (1 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Asia') {
+							d.x += (3 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Americas') {
+							d.x += (5 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Europe') {
+							d.x += (7 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Oceania') {
+							d.x += (9 * width / 9 - d.x) * k;
+						}
+					}
+
+					if (document.getElementById('fifths').checked) {
+						if (d.continent == 'Africa') {
+							d.x += (5 * width / 9 - d.x) * k;
+							d.y += (1 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Asia') {
+							d.x += (4 * width / 9 - d.x) * k;
+							d.y += (7 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Americas') {
+							d.x += (7 * width / 9 - d.x) * k;
+							d.y += (4 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Europe') {
+							d.x += (1 * width / 9 - d.x) * k;
+							d.y += (4 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Oceania') {
+							d.x += (2 * width / 9 - d.x) * k;
+							d.y += (1 * screen.height / 9 - d.y) * k;
+						}
+					}
+
+				});
+
+				graph_update(0);
+			}
+
+			graph.nodes.forEach(function(first, i) {
+				graph.nodes.forEach(function(second, j) {
+					first.top_partners.forEach(function(firstPartner, k) {
+						if (firstPartner.country_id == second.country_id) {
+							second.top_partners.forEach(function(secondPartner, k) {
+								if (secondPartner.country_id == first.country_id) {
+									graph.links.push({
+										"source": first,
+										"target": second,
+										"net": firstPartner.total_export - secondPartner.total_export
+									});
+								}
+							});
+						}
+					});
+				});
+			});
+
+
+
+			function circles_layout() {
+				force.stop();
+
+				var r = Math.min(height, width) / 2;
+
+				var arc = d3.svg.arc()
+					.outerRadius(200);
+
+				var pie = d3.layout.pie()
+					.value(function(d, i) {
+						return 1; // We want an equal pie share/slice for each point
+					});
+
+				africaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Africa';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 5.5 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 2 * screen.height / 9;
+					if (i === 1) {
+						d.data.rotate = 13 * 360 / 26 - 85;
+					} else if (i === 13) {
+						d.data.rotate = 0 * 360 / 26 - 85;
+					} else {
+						d.data.rotate = i * 360 / 26 - 85;
+					}
+					return d.data;
+				});
+
+				americaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Americas';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 7 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 5 * screen.height / 9;
+					d.data.rotate = i * 360 / 365;
+
+					if (i === 1) {
+						d.data.rotate = 11 * 360 / 21 - 87;
+					} else if (i === 11) {
+						d.data.rotate = 0 * 360 / 21 - 87;
+					} else {
+						d.data.rotate = i * 360 / 21 - 87;
+					}
+					return d.data;
+				});
+
+				asiaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Asia';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 4 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 6 * screen.height / 9;
+
+					if (i === 1) {
+						d.data.rotate = 17 * 360 / 34 - 87;
+					} else if (i === 17) {
+						d.data.rotate = 0 * 360 / 34 - 87;
+					} else {
+						d.data.rotate = i * 360 / 34 - 87;
+					}
+
+					return d.data;
+				});
+
+				europeNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Europe';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 1.5 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 4.5 * screen.height / 9;
+					if (i === 1) {
+						d.data.rotate = 16 * 360 / 31 - 80;
+					} else if (i === 16) {
+						d.data.rotate = 0 * 360 / 31 - 80;
+					} else {
+						d.data.rotate = i * 360 / 31 - 80;
+					}
+
+					return d.data;
+				});
+
+				oceaniaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Oceania';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 3 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 1.25 * screen.height / 9;
+					d.data.rotate = i * 360 / 3 - 85;
+					return d.data;
+				});
+
+				graph.nodes = africaNodes.concat(americaNodes, asiaNodes, europeNodes, oceaniaNodes);
+				graph_update(500);
+			}
+
+			function graph_update(duration) {
+				if (link.length !== 0) {
+					link.transition().duration(duration)
+						.attr("x1", function(d) {
+							return d.target.x;
+						})
+						.attr("y1", function(d) {
+							return d.target.y;
+						})
+						.attr("x2", function(d) {
+							return d.source.x;
+						})
+						.attr("y2", function(d) {
+							return d.source.y;
+						});
+				}
+
+				node.transition().duration(duration)
+					.attr("transform", function(d) {
+						return "translate(" + d.x + "," + d.y + "), rotate(" + d.rotate + ")";
+					});
+			}
+
+
+			link = svg.selectAll(".link")
+				.data(graph.links);
+
+			link.enter().append("line")
+				.attr("class", "link")
+				.attr("class", function(d, i) {
+					return "link countryLink" + d.source.country_id + "to" + d.target.country_id;
+				}).style("opacity", ".25");
+
+
+			var node = svg.selectAll(".node")
+				.data(graph.nodes)
+				.enter()
+				.append("g").attr("class", function(d, i) {
+					return "node countryNode" + d.country_id;
+				});
+
+			node.append("circle")
+				.attr("r", 3);
+
+			node.append("text")
+				.text(function(d, i) {
+					return d.name;
+				})
+				.style("font-family", "Cambria")
+				.style("font-size", "10pt")
+				.style("padding-left", "20px")
+				.attr("dx", 10)
+				.attr("dy", 5);
+
+
+			node
+				.on("mouseover", function(d) {
+					svg.selectAll(".node").style("opacity", "0.25");
+					graph.links.forEach(function(l, i) {
+
+						if (l.source == d) {
+							if (l.net > 0) {
+								svg.selectAll(".countryLink" + l.source.country_id + "to" + l.target.country_id).style("stroke", "green").style("stroke-width", "3").style("opacity", "1");
+								svg.selectAll(".countryNode" + l.source.country_id).style("opacity", "1");
+								svg.selectAll(".countryNode" + l.target.country_id).style("opacity", "1").style("stroke", "red");
+							} else {
+								svg.selectAll(".countryLink" + l.source.country_id + "to" + l.target.country_id).style("stroke", "red").style("stroke-width", "3").style("opacity", "1");
+								svg.selectAll(".countryNode" + l.source.country_id).style("opacity", "1");
+								svg.selectAll(".countryNode" + l.target.country_id).style("opacity", "1").style("stroke", "green");
+							}
+
+						}
+
+					});
+				})
+				.on("mouseleave", function(d) {
+					svg.selectAll(".link").style("stroke", "gray").style("stroke-width", "0.8").style("opacity", "0.5");
+					svg.selectAll(".node").style("opacity", "1").style("stroke-width", null).style("stroke", "black");
+				});
+
+
+			circles_layout();
+
+		});
+	</script>
+</body>
+
+</html>

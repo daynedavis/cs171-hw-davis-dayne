@@ -24,7 +24,7 @@
   Layout:
     <label><input type="radio" name="layout" value="force" checked> Force</label>
     <label><input type="radio" name="layout" value="random" > Random</label>
-    <label><input type="radio" name="layout" value="circular"> Circular</label>  
+    <label><input type="radio" name="layout" value="circular"> Circular</label>
     <label><input type="radio" name="layout" value="line"> Line</label>
     <label><input type="radio" name="layout" value="line_cat"> Line by Category</label>
   </form>
@@ -56,10 +56,10 @@ var nb_nodes = 120, nb_cat = 10;
 
 var node_scale = d3.scale.linear().domain([0, nb_cat]).range([5, 50])
 
-graph.nodes = d3.range(nb_nodes).map(function() {  
-  return { 
+graph.nodes = d3.range(nb_nodes).map(function() {
+  return {
     cat: Math.floor(nb_cat*Math.random())
-  }; 
+  };
 })
 
 graph.nodes.forEach(function(d, i) {
@@ -84,14 +84,14 @@ function tick(d) {
 }
 
 function random_layout() {
-  
+
   force.stop();
 
   graph.nodes.forEach(function(d, i) {
     d.x = width/4 + 2*width*Math.random()/4;
     d.y = height/4 + 2*height*Math.random()/4;
   })
-  
+
   graph_update(500);
 }
 
@@ -135,7 +135,7 @@ function circular_layout() {
 
   var pie = d3.layout.pie()
           .sort(function(a, b) { return a.cat - b.cat;}) // Sorting by categories
-          .value(function(d, i) { 
+          .value(function(d, i) {
             return 1;  // We want an equal pie share/slice for each point
           });
 
@@ -157,30 +157,30 @@ function circular_layout() {
 function category_color() {
 
   d3.selectAll("circle").transition().duration(500)
-                        .style("fill", function(d) { 
-                          return fill(d.cat); 
+                        .style("fill", function(d) {
+                          return fill(d.cat);
                         });
 }
 
 function category_size() {
 
   d3.selectAll("circle").transition().duration(500)
-                        .attr("r", function(d) { 
-                          return Math.sqrt(node_scale(d.cat)); 
+                        .attr("r", function(d) {
+                          return Math.sqrt(node_scale(d.cat));
                         });
 }
 
 function graph_update(duration) {
 
   link.transition().duration(duration)
-      .attr("x1", function(d) { return d.target.x; })
+      .attr("x1", function(d) { console.log(d); return d.target.x; })
       .attr("y1", function(d) { return d.target.y; })
       .attr("x2", function(d) { return d.source.x; })
       .attr("y2", function(d) { return d.source.y; });
 
   node.transition().duration(duration)
-      .attr("transform", function(d) { 
-        return "translate("+d.x+","+d.y+")"; 
+      .attr("transform", function(d) {
+        return "translate("+d.x+","+d.y+")";
       });
 }
 

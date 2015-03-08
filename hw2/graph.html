@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Homework 2 Graph</title>
+<style>
+	.link {
+		stroke: gray;
+		stroke-width: .8px;
+	}
+	.node {
+		fill: white;
+		stroke: #000;
+		stroke-width: .9px;
+	}
+	.node text {
+		fill: black;
+	}
+	.node:hover {
+		fill: black;
+	}
+	text {
+		font-family: 'Arial';
+	}
+</style>
+
+<body>
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<form>
+		Force:
+		<label>
+			<input type="radio" name="layout" value="force"> Center</label>
+		<label>
+			<input id="quarters" type="radio" name="layout" value="quarters"> Split</label>
+		<label>
+			<input id="fifths" type="radio" name="layout" value="fifths"> Fifths</label>
+		<br>
+		<label>
+			<input type="radio" name="layout" value="circles"> Circles</label>
+		<label>
+			<input type="radio" name="layout" value="circular"> Circular</label>
+		<select id="circleSelect">
+			<option value="none" selected>None</option>
+			<option value="gdp">GDP</option>
+			<option value="population">Population</option>
+			<option value="life_expectancy">Life Expectancy</option>
+		</select>
+		<br>
+		<label>
+			<input type="radio" name="layout" value="line"> Line</label>
+		X:
+		<select id="xSelect">
+			<option value="none" selected>None</option>
+			<option value="gdp">GDP</option>
+			<option value="population">Population</option>
+			<option value="life_expectancy">Life Expectancy</option>
+			<option value="name">Name</option>
+		</select>
+		Y:
+		<select id="ySelect">
+			<option value="none" selected>None</option>
+			<option value="gdp">GDP</option>
+			<option value="population">Population</option>
+			<option value="life_expectancy">Life Expectancy</option>
+			<option value="name">Name</option>
+		</select>
+		<br>
+		<label>
+			<input type="radio" name="tradeLines" value="tradeLines"> Show Links</label>
+	</form>
+	<script>
+		var margin = {
+			top: 50,
+			bottom: 10,
+			left: 300,
+			right: 40
+		};
+		var width = screen.width;
+		var height = 1500;
+
+		var svg = d3.select("body").append("svg")
+			.attr("width", width)
+			.attr("height", height);
+
+		var fill = d3.scale.category10();
+
+		function maxValue(D, encodeBy) {
+			eachMax = D.map(function(d) {
+				return d[encodeBy];
+			});
+			return d3.max(eachMax);
+		}
+
+		var yScale = d3.scale.linear().range([10, height - 10]);
+		var xScale = d3.scale.linear().range([10, width - 10]);
+
+		var graph = {
+			nodes: [],
+			links: []
+		};
+		var storedLinks = [];
+		var nb_nodes = 120,
+			nb_cat = 10;
+		var link = [];
+
+		var node_scale = d3.scale.linear().domain([0, nb_cat]).range([5, 50]);
+
+		d3.json("data/countries_1995_2012.json", function(data) {
+
+			data.forEach(function(d, i) {
+				d.population = d.years[17].population;
+				d.gdp = d.years[17].gdp;
+				d.life_expectancy = d.years[17].life_expectancy;
+				d.top_partners = d.years[17].top_partners;
+				delete d.years;
+				graph.nodes.push(d);
+			});
+
+
+			// Generate the force layout
+			var force = d3.layout.force()
+				.size([width, screen.height])
+				.on("tick", tick)
+				.charge(-50);
+
+			function tick(e) {
+				// alpha is the cooling factor: it gets progressively smaller as the simulation converges
+				var k = 0.06 * e.alpha;
+
+				// applies a custom force alternating between pushing nodes towards one of the four corners
+				graph.nodes.forEach(function(d, i) {
+
+					if (document.getElementById('quarters').checked) {
+						if (d.continent == 'Africa') {
+							d.x += (1 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Asia') {
+							d.x += (3 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Americas') {
+							d.x += (5 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Europe') {
+							d.x += (7 * width / 9 - d.x) * k;
+						} else if (d.continent == 'Oceania') {
+							d.x += (9 * width / 9 - d.x) * k;
+						}
+					}
+
+					if (document.getElementById('fifths').checked) {
+						if (d.continent == 'Africa') {
+							d.x += (5 * width / 9 - d.x) * k;
+							d.y += (1 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Asia') {
+							d.x += (4 * width / 9 - d.x) * k;
+							d.y += (7 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Americas') {
+							d.x += (7 * width / 9 - d.x) * k;
+							d.y += (4 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Europe') {
+							d.x += (1 * width / 9 - d.x) * k;
+							d.y += (4 * screen.height / 9 - d.y) * k;
+						} else if (d.continent == 'Oceania') {
+							d.x += (2 * width / 9 - d.x) * k;
+							d.y += (1 * screen.height / 9 - d.y) * k;
+						}
+					}
+
+				});
+
+				graph_update(0);
+			}
+
+
+			function force_layout() {
+				force.nodes(graph.nodes)
+					.start();
+			}
+
+			function line_layout(sort) {
+				force.stop();
+				xSelect = document.getElementById('xSelect');
+				xKey = xSelect.options[xSelect.selectedIndex].value;
+				ySelect = document.getElementById('ySelect');
+				yKey = ySelect.options[ySelect.selectedIndex].value;
+
+				graph.nodes.forEach(function(d, i) {
+					if (yKey === 'name') {
+						graph.nodes.sort(function(a, b) {
+							return d3.ascending(a.name, b.name);
+						});
+						graph.nodes.forEach(function(d, i) {
+							d.y = i * 12 + 8;
+						});
+					} else if (yKey != 'none') {
+						yMax = maxValue(data, yKey);
+						yScale.domain([0, yMax]);
+						d.y = yScale(yMax - d[yKey]);
+					} else {
+						d.y = screen.height / 2;
+						console.log(d.y);
+					}
+					if (xKey === 'name') {
+						graph.nodes.sort(function(a, b) {
+							return d3.ascending(a.name, b.name);
+						});
+						graph.nodes.forEach(function(d, i) {
+							xScale.domain([0, data.length * 1.1]);
+							d.x = xScale(i);
+						});
+					} else if (xKey != 'none') {
+						xMax = maxValue(data, xKey);
+						xScale.domain([0, xMax * 1.1]);
+						d.x = xScale(xMax - d[xKey]);
+					} else {
+						d.x = width / 2;
+					}
+
+				});
+
+				graph_update(500);
+			}
+
+			function circular_layout(sort) {
+
+				force.stop();
+
+				var r = Math.min(height, width) / 2;
+
+				var arc = d3.svg.arc()
+					.outerRadius(r);
+
+				var pie = d3.layout.pie() // Sorting by categories
+					.value(function(d, i) {
+						return 1; // We want an equal pie share/slice for each point
+					});
+
+				if (sort != 'none') {
+					graph.nodes = pie(graph.nodes.sort(function(a, b) {
+						return d3.descending(a[sort], b[sort]);
+					})).map(function(d, i) {
+						// Needed to caclulate the centroid
+						d.innerRadius = 0;
+						d.outerRadius = r;
+
+						// Building the data object we are going to return
+						d.data.x = arc.centroid(d)[0] + width / 2;
+						d.data.y = arc.centroid(d)[1] + screen.height / 2;
+
+						return d.data;
+					});
+				} else {
+					graph.nodes = pie(graph.nodes).map(function(d, i) {
+						// Needed to caclulate the centroid
+						d.innerRadius = 0;
+						d.outerRadius = r;
+
+						// Building the data object we are going to return
+						d.data.x = arc.centroid(d)[0] + width / 2;
+						d.data.y = arc.centroid(d)[1] + screen.height / 2;
+
+						return d.data;
+					});
+				}
+
+
+				graph_update(500);
+			}
+
+			function circles_layout() {
+				force.stop();
+
+				var r = Math.min(height, width) / 2;
+
+				var arc = d3.svg.arc()
+					.outerRadius(200);
+
+				var pie = d3.layout.pie()
+					.value(function(d, i) {
+						return 1; // We want an equal pie share/slice for each point
+					});
+
+				africaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Africa';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 5.5 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 1.25 * screen.height / 9;
+					return d.data;
+				});
+
+				americaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Americas';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 6 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 4 * screen.height / 9;
+					return d.data;
+				});
+
+				asiaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Asia';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 4 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 6 * screen.height / 9;
+					return d.data;
+				});
+
+				europeNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Europe';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 2 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 4 * screen.height / 9;
+					return d.data;
+				});
+
+				oceaniaNodes = pie(graph.nodes.filter(function(d) {
+					return d.continent == 'Oceania';
+				})).map(function(d, i) {
+					d.innerRadius = 0;
+					d.outerRadius = 100;
+
+					d.data.x = arc.centroid(d)[0] + 3 * width / 9;
+					d.data.y = arc.centroid(d)[1] + 1.25 * screen.height / 9;
+					return d.data;
+				});
+
+				graph.nodes = africaNodes.concat(americaNodes, asiaNodes, europeNodes, oceaniaNodes);
+				graph_update(500);
+			}
+
+			function graph_update(duration) {
+				if (link.length !== 0) {
+					link.transition().duration(duration)
+						.attr("x1", function(d) {
+							return d.target.x;
+						})
+						.attr("y1", function(d) {
+							return d.target.y;
+						})
+						.attr("x2", function(d) {
+							return d.source.x;
+						})
+						.attr("y2", function(d) {
+							return d.source.y;
+						});
+				}
+
+				node.transition().duration(duration)
+					.attr("transform", function(d) {
+						return "translate(" + d.x + "," + d.y + ")";
+					});
+			}
+
+			d3.select("input[value=\"force\"]").on("click", force_layout);
+			d3.select("input[value=\"quarters\"]").on("click", force_layout);
+			d3.select("input[value=\"fifths\"]").on("click", force_layout);
+			d3.select("input[value=\"line\"]").on("click", line_layout);
+			d3.select("input[value=\"tradeLines\"]").on("click", showLines);
+			d3.select("input[value=\"circular\"]").on("click", circular_layout);
+			d3.select("input[value=\"circles\"]").on("click", circles_layout);
+			d3.select("#xSelect").on("change", function() {
+				if (this.value) {
+					line_layout();
+				}
+			});
+			d3.select("#ySelect").on("change", function() {
+				if (this.value) {
+					line_layout();
+				}
+			});
+			d3.select("#circleSelect").on("change", function() {
+				if (this.value) {
+					circular_layout(this.value);
+				}
+			});
+			d3.select("#button1").on("click", force.start());
+			d3.select("input[value=\"nocolor\"]").on("click", function() {
+				d3.selectAll("circle").transition().duration(500).style("fill", "#66CC66");
+			});
+
+
+			d3.select("input[value=\"nosize\"]").on("click", function() {
+				d3.selectAll("circle").transition().duration(500).attr("r", 5);
+			});
+
+			var node = svg.selectAll(".node")
+				.data(graph.nodes)
+				.enter()
+				.append("g").attr("class", function(d, i) {
+					return "node country" + d.country_id;
+				});
+
+			node.append("circle")
+				.attr("r", 3);
+
+			node.append("text")
+				.text(function(d, i) {
+					return d.name;
+				})
+				.style("font-family", "Cambria")
+				.style("font-size", "10pt")
+				.style("padding-left", "20px")
+				.attr("dx", 10)
+				.attr("dy", 5);
+
+			function showLines() {
+				d3.selectAll('.node').remove();
+
+				graph.nodes.forEach(function(d, i) {
+					graph.nodes.forEach(function(e, j) {
+						d.top_partners.forEach(function(f, k) {
+							if (f.country_id == e.country_id)
+								graph.links.push({
+									"source": d,
+									"target": e
+								});
+						});
+					});
+				});
+				link = svg.selectAll(".link")
+					.data(graph.links);
+
+				link.enter().append("line")
+					.attr("class", "link")
+					.attr("class", function(d, i) {
+						return "link country" + d.source.country_id;
+					}).style("opacity", ".25");
+
+				node = svg.selectAll(".node")
+					.data(graph.nodes)
+					.enter()
+					.append("g").attr("class", function(d, i) {
+						return "node country" + d.country_id;
+					});
+				node.append("circle")
+					.attr("r", 3);
+
+				node.append("text")
+					.text(function(d, i) {
+						return d.name;
+					})
+					.style("font-family", "Cambria")
+					.style("font-size", "10pt")
+					.style("padding-left", "20px")
+					.attr("dx", 10)
+					.attr("dy", 5);
+				node
+					.on("mouseover", function(d) {
+						svg.selectAll(".node").style("opacity", "0.25");
+						graph.links.forEach(function(l, i) {
+							if (l.source == d) {
+								svg.selectAll(".country" + l.source.country_id).style("stroke", "black").style("stroke-width", "1.6").style("opacity", "1");
+								svg.selectAll(".country" + l.target.country_id).style("opacity", "1");
+							}
+
+						});
+					})
+					.on("mouseleave", function(d) {
+						svg.selectAll(".link").style("stroke", "gray").style("stroke-width", "0.8").style("opacity", "0.5");
+						svg.selectAll(".node").style("opacity", "1").style("stroke-width", null);
+					});
+				circular_layout();
+			}
+
+			force_layout();
+
+		});
+	</script>
+</body>
+
+</html>
