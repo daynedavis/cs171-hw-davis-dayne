@@ -28,12 +28,12 @@ CountVis = function(_parentElement, _data, _metaData, _eventHandler){
 
 
     // TODO: define all "constants" here
-
-
-
+    this.margin = {top: 20, right: 0, bottom: 30, left: 80},
+    this.width = getInnerWidth(this.parentElement) - this.margin.left - this.margin.right ,
+    this.height = 400 - this.margin.top - this.margin.bottom;
 
     this.initVis();
-}
+};
 
 
 /**
@@ -53,11 +53,64 @@ CountVis.prototype.initVis = function(){
     // -  implement brushing !!
     // --- ONLY FOR BONUS ---  implement zooming
 
+    // constructs SVG layout
+    this.svg = this.parentElement.append("svg")
+        .attr("width", this.width + this.margin.left + this.margin.right)
+        .attr("height", this.height + this.margin.top + this.margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
+
+    // creates axis and scales
+    this.x = d3.time.scale()
+      .range([0, this.width]);
+
+    this.y = d3.scale.linear()
+      .range([this.height, 0]);
+
+    this.xAxis = d3.svg.axis()
+      .scale(this.x)
+      .orient("bottom");
+
+    this.yAxis = d3.svg.axis()
+      .scale(this.y)
+      .orient("left");
+
+    this.area = d3.svg.area()
+      .interpolate("monotone")
+      .x(function(d) { return that.x(d.time); })
+      .y0(this.height)
+      .y1(function(d) { return that.y(d.count); });
+
+
+      this.brush = d3.svg.brush();
+
+      this.brush = d3.svg.brush()
+        .on("brush", function() {
+          $(that.eventHandler).trigger("selectionChanged", that.brush.extent());
+        });
+
+      this.svg.append("g")
+        .attr("class", "brush");
+
+      // Add axes visual elements
+      this.svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + this.height + ")");
+
+      this.svg.append("g")
+          .attr("class", "y axis")
+        .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 6)
+          .attr("dy", ".71em")
+          .style("text-anchor", "end")
+          .text("Number of votes");
+
     // TODO: modify this to append an svg element, not modify the current placeholder SVG element
     this.svg = this.parentElement.select("svg");
 
     //TODO: implement the slider -- see example at http://bl.ocks.org/mbostock/6452972
-    this.addSlider(this.svg)
+    this.addSlider(this.svg);
 
 
     // filter, aggregate, modify data
@@ -65,7 +118,7 @@ CountVis.prototype.initVis = function(){
 
     // call the update method
     this.updateVis();
-}
+};
 
 
 
@@ -78,7 +131,7 @@ CountVis.prototype.wrangleData= function(){
     // pretty simple in this case -- no modifications needed
     this.displayData = this.data;
 
-}
+};
 
 
 
@@ -89,9 +142,40 @@ CountVis.prototype.wrangleData= function(){
 CountVis.prototype.updateVis = function(){
 
     // TODO: implement update graphs (D3: update, enter, exit)
+    // updates scales
+    this.x.domain(d3.extent(this.displayData, function(d) { return d.time; }));
+    this.y.domain(d3.extent(this.displayData, function(d) { return d.count; }));
+
+    // updates axis
+    this.svg.select(".x.axis")
+        .call(this.xAxis);
+
+    this.svg.select(".y.axis")
+        .call(this.yAxis);
+
+    // updates graph
+    var path = this.svg.selectAll(".area")
+      .data([this.displayData]);
+
+    path.enter()
+      .append("path")
+      .attr("class", "area");
+
+    path
+      .transition()
+      .attr("d", this.area);
+
+    path.exit()
+      .remove();
+
+    this.brush.x(this.x);
+    this.svg.select(".brush")
+      .call(this.brush)
+      .selectAll("rect")
+      .attr("height", this.height);
 
 
-}
+};
 
 /**
  * Gets called by event handler and should create new aggregated data
@@ -103,10 +187,13 @@ CountVis.prototype.onSelectionChange= function (selectionStart, selectionEnd){
 
     // TODO: call wrangle function
 
+    this.wrangleData(function(d) { return d.type == type; });
+
+    this.updateVis();
     // do nothing -- no update when brushing
 
 
-}
+};
 
 
 /*
@@ -118,7 +205,9 @@ CountVis.prototype.onSelectionChange= function (selectionStart, selectionEnd){
  * */
 
 
-
+CountVis.prototype.onSelectionChange = function(extent) {
+  console.log(extent);
+};
 
 
 /**
@@ -129,7 +218,7 @@ CountVis.prototype.addSlider = function(svg){
     var that = this;
 
     // TODO: Think of what is domain and what is range for the y axis slider !!
-    var sliderScale = d3.scale.linear().domain([0,200]).range([0,200])
+    var sliderScale = d3.scale.linear().domain([0,200]).range([0,200]);
 
     var sliderDragged = function(){
         var value = Math.max(0, Math.min(200,d3.event.y));
@@ -143,17 +232,17 @@ CountVis.prototype.addSlider = function(svg){
         d3.select(this)
             .attr("y", function () {
                 return sliderScale(sliderValue);
-            })
+            });
 
         that.updateVis({});
-    }
+    };
     var sliderDragBehaviour = d3.behavior.drag()
-        .on("drag", sliderDragged)
+        .on("drag", sliderDragged);
 
     var sliderGroup = svg.append("g").attr({
         class:"sliderGroup",
         "transform":"translate("+0+","+30+")"
-    })
+    });
 
     sliderGroup.append("rect").attr({
         class:"sliderBg",
@@ -162,7 +251,7 @@ CountVis.prototype.addSlider = function(svg){
         height:200
     }).style({
         fill:"lightgray"
-    })
+    });
 
     sliderGroup.append("rect").attr({
         "class":"sliderHandle",
@@ -173,13 +262,7 @@ CountVis.prototype.addSlider = function(svg){
         ry:2
     }).style({
         fill:"#333333"
-    }).call(sliderDragBehaviour)
+    }).call(sliderDragBehaviour);
 
 
-}
-
-
-
-
-
-
+};

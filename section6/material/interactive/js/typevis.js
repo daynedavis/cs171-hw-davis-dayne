@@ -118,6 +118,9 @@ TypeVis.prototype.updateVis = function(){
     bar_enter.append("rect");
     bar_enter.append("text");
 
+    bar_enter.on("click", function(d) {
+      $(that.eventHandler).trigger("selectionChanged", d.type);
+    });
     // Add attributes (position) to all bars
     bar
       .attr("class", "bar")
@@ -214,7 +217,3 @@ TypeVis.prototype.filterAndAggregate = function(_filter){
 
     return counts;
 }
-
-
-
-

@@ -59,9 +59,9 @@
         <div class="row">
             <div class="col-md-9" id="countVis">
                 <!-- TODO: delete placeholder svg element -->
-                <svg width="650" height="330" style="background-color: lightblue">
+                <!-- <svg width="650" height="330" style="background-color: lightblue">
                     <text x="50" y="50">HERE should be CountVis</text>
-                </svg>
+                </svg> -->
             </div>
             <div class="col-md-3" id="ageVis">
                 <!-- TODO: delete placeholder svg element -->
@@ -117,13 +117,15 @@
 
 
                 //TODO: Instantiate all Vis Objects here
-
+                var count_vis = new CountVis(d3.select("#countVis"), allData, metaData, MyEventHandler);
 
                 // TODO: bind the eventHandler to the Vis Objects
                 // events will be created from the CountVis object (nothing to do here)
                 // events will be consumed by the PrioVis and AgeVis object (binding should happen here)
-
-            }
+                $(MyEventHandler).bind("selectionChanged", function(event, extent){
+                  count_vis.onSelectionChange(extent);
+                });
+            };
 
             // call this function after both files are loaded -- error should be "null" if no error
             var dataLoaded = function (error, _allData, _metaData) {
@@ -141,15 +143,14 @@
                     *
                     * */
 
-
                     allData = _allData.map(function (d) {
                                 var res = {
                                     time: dateFormatter.parse(d.day),
-                                    count: parseInt(d["count(*)"])
+                                    count: parseInt(d["count(*)"]) //"
                                 };
 
                                 // TODO: implement that  !!
-                                res.prios = []
+                                res.prios = [];
                                 // should be an array of 16 numbers with the total count MAPping the prio values,
                                 //  [d["sum(p0)"], d["sum(p1)"], d["sum(p2)"],...]
                                 // Example:
@@ -158,7 +159,7 @@
 
                                 // This is ONE way to create an array of length 100
                                 // and set every value to "0")
-                                res.ages = d3.range(0,100). map(function(){return 0;})
+                                res.ages = d3.range(0,100). map(function(){return 0;});
 
                                 // TODO: Assign the count for each age to the index position
                                 // eg: res.ages[22] should contain the count value for age 22
@@ -169,28 +170,55 @@
 
                                 return res;
                             }
-                    )
+                    );
 
                     metaData = _metaData;
                     initVis();
                 }
-            }
+            };
 
             var startHere = function(){
 
                 //TODO: load data here and call "dataLoaded" afterwards
-                // Hint: http://giscollective.org/d3-queue-js/
+                // Hint: httpo://giscollective.org/d3-queue-js/
+                d3.json("data/MYWorld_fields.json", function(error, data) {
+                  if (!error) {
+                    // Parse date string into Javascript objects
+                    // data.forEach(function(d) {
+                    //   d.date = dateFormatter.parse(d.date);
+                    // });
+                    metaData = data;
+                    d3.json("data/perDayData.json", function(error, data) {
+                      if (!error) {
+                        // Parse date string into Javascript objects
+                        // data.forEach(function(d) {
+                        //   d.date = dateFormatter.parse(d.date);
+                        // });
 
+                        allData = data;
+                        dataLoaded(error, allData, metaData);
+
+                      }
+                    });
+
+                  }
+                });
                 // bind reset zoom button to a function (-- ONLY FOR BONUS --)
                 d3.select("#fitInBtn").on("click", function() {
                     // TODO: -- ONLY FOR BONUS --
                 });
 
 
-            }
+            };
 
             startHere();
-        })
+        });
+
+        var getInnerWidth = function(element) {
+            var style = window.getComputedStyle(element.node(), null);
+
+            return parseInt(style.getPropertyValue('width'));
+        };
     </script>
 </body>
 </html>

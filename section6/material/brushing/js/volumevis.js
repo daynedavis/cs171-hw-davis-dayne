@@ -24,7 +24,7 @@ VolumeVis = function(_parentElement, _data, _eventHandler){
     this.height = 400 - this.margin.top - this.margin.bottom;
 
     this.initVis();
-}
+};
 
 
 /**
@@ -62,10 +62,21 @@ VolumeVis.prototype.initVis = function(){
       .y0(this.height)
       .y1(function(d) { return that.y(d.calls.length); });
 
+    this.brush = d3.svg.brush();
+
+    this.brush = d3.svg.brush()
+      .on("brush", function() {
+
+        console.log(that.brush.extent());
+      });
+
+    this.svg.append("g")
+      .attr("class", "brush");
+
     // Add axes visual elements
     this.svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + this.height + ")")
+        .attr("transform", "translate(0," + this.height + ")");
 
     this.svg.append("g")
         .attr("class", "y axis")
@@ -81,7 +92,7 @@ VolumeVis.prototype.initVis = function(){
 
     // call the update method
     this.updateVis();
-}
+};
 
 
 /**
@@ -97,7 +108,7 @@ VolumeVis.prototype.wrangleData= function(_filterFunction){
     //// if you don't pass options -- set the default options
     //// the default is: var options = {filter: function(){return true;} }
     //var options = _options || {filter: function(){return true;}};
-}
+};
 
 
 
@@ -114,11 +125,11 @@ VolumeVis.prototype.updateVis = function(){
         .call(this.xAxis);
 
     this.svg.select(".y.axis")
-        .call(this.yAxis)
+        .call(this.yAxis);
 
     // updates graph
     var path = this.svg.selectAll(".area")
-      .data([this.displayData])
+      .data([this.displayData]);
 
     path.enter()
       .append("path")
@@ -130,7 +141,15 @@ VolumeVis.prototype.updateVis = function(){
 
     path.exit()
       .remove();
-}
+
+    this.brush.x(this.x);
+    this.svg.select(".brush")
+      .call(this.brush)
+      .selectAll("rect")
+      .attr("height", this.height);
+
+
+};
 
 
 /**
@@ -144,7 +163,7 @@ VolumeVis.prototype.onSelectionChange = function (type){
     this.wrangleData(function(d) { return d.type == type; });
 
     this.updateVis();
-}
+};
 
 
 /**
@@ -156,12 +175,12 @@ VolumeVis.prototype.filterAndAggregate = function(_filter){
 
     // Set filter to a function that accepts all items
     // ONLY if the parameter _filter is NOT null use this parameter
-    var filter = function(){return true;}
-    if (_filter != null){
+    var filter = function(){return true;};
+    if (_filter !== null){
         filter = _filter;
     }
 
     // We want to filter in the inner "calls" array (so we need to map over it)
     // You'll generally just need `this.data.filter(filter)`
     return this.data.map(function(d) { return {date: d.date, calls: d.calls.filter(filter)}; });
-}
+};

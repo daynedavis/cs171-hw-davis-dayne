@@ -68,10 +68,23 @@
 
 
 
+            filtered_data = allData.filter(function(d) {
+  						  if (d.time >= from && d.time <= to) {
+  							  count++;
+                  // console.log(d.time);
+                  // console.log(from);
+                  return true;
+                }
+                else {
+                  return false;
+                }
+  					});
+
+            console.log(metaData);
 
 
-
-
+            console.log(count);
+            console.log(filtered_data.length);
             // after you assigned a value to the count variable
             // this function checks if your count is correct
             // you need an active internet connection for this to work
@@ -109,7 +122,27 @@
 
 
         // TODO: TASK 2 A -- implement your data loading here and then call "allLoaded(perDayData, metaData)"
+        d3.json("data/MYWorld_fields.json", function(error, data) {
+          if (!error) {
+            // Parse date string into Javascript objects
+            // data.forEach(function(d) {
+            //   d.date = dateFormatter.parse(d.date);
+            // });
+            metaData = data;
+            d3.json("data/perDayData.json", function(error, data) {
+              if (!error) {
+                // Parse date string into Javascript objects
+                // data.forEach(function(d) {
+                //   d.date = dateFormatter.parse(d.date);
+                // });
 
+                allData = data;
+                allLoaded(allData, metaData);
+
+              }
+            });
+          }
+          });
 
 
 

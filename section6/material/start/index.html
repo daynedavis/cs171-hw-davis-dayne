@@ -72,10 +72,10 @@ var initVis = function(){
 
   // instantiates all Vis Objects here
   volume_vis = new VolumeVis(d3.select("#volumeVis"), allData);
+  type_vis = new TypeVis(d3.select("#typeVis"), allData);
 
-  // TODO: also initialize TypeVis
 
-}
+};
 
 var startHere = function() {
 
@@ -90,7 +90,7 @@ var startHere = function() {
       initVis();
     }
   });
-}
+};
 
 startHere();
 
@@ -102,7 +102,7 @@ var getInnerWidth = function(element) {
     var style = window.getComputedStyle(element.node(), null);
 
     return parseInt(style.getPropertyValue('width'));
-}
+};
 
 </script>
 </body>
