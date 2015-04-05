@@ -62,7 +62,7 @@ CountVis.prototype.initVis = function(){
 
     // creates axis and scales
     this.x = d3.time.scale()
-      .range([80, this.width]);
+      .range([0, this.width]);
 
     this.y = d3.scale.linear()
       .range([this.height, 50]);
@@ -77,7 +77,7 @@ CountVis.prototype.initVis = function(){
 
     this.area = d3.svg.area()
       .interpolate("monotone")
-      .x(function(d) { return that.x(d.time); })
+      .x(function(d) { return that.x(d.time) + 80; })
       .y0(this.height)
       .y1(function(d) { return that.y(d.count); });
 
@@ -95,7 +95,7 @@ CountVis.prototype.initVis = function(){
       // Add axes visual elements
       this.svg.append("g")
           .attr("class", "x axis")
-          .attr("transform", "translate(-80," + this.height  + ")");
+          .attr("transform", "translate(0," + this.height  + ")");
 
       this.svg.append("g")
           .attr("class", "y axis")

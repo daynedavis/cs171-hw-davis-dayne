@@ -19,7 +19,6 @@ PrioVis = function(_parentElement, _data, _metaData){
             that.totals[c] += e;
         });
       });
-      console.log(this.totals);
 
     // defines constants
     this.margin = {top: 10, right: 70, bottom: 150, left: 80},
@@ -111,10 +110,14 @@ PrioVis.prototype.updateVis = function(){
     // var options = _options || {};
 
     var that = this;
+    this.svg.selectAll(".layer").remove();
+    var color = d3.scale.ordinal()
+        .domain([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+        .range(["#24ba4a", "#126f31"]);
 
     // updates scalesfunction(d) { return that.metaData.priorities[d.type]['item-title']; }
-    this.y.domain([0, d3.max(that.displayData)]);
-    this.x.domain(that.displayData.map(function(d,i) { return that.metaData.priorities[i]['item-title']; }));
+    this.y.domain([0, d3.max(that.totals)]);
+    this.x.domain(that.displayData[0].map(function(d,i) { return that.metaData.priorities[i]['item-title']; }));
 
 
     this.color.domain(that.displayData.map(function(d, i) { return i; }));
@@ -130,9 +133,15 @@ PrioVis.prototype.updateVis = function(){
         .attr("transform", "rotate(-45)");
     // updates graph
 
+    var layer = this.svg.selectAll(".layer")
+        .data(this.displayData)
+        .enter().append("g")
+        .attr("class", "layer")
+        .style("fill", function(d, i) { return color(i); });
+
     // Data join
-    var bar = this.svg.selectAll(".bar")
-      .data(that.displayData, function(d, i) { return i; });
+    var bar = layer.selectAll(".bar")
+      .data(function(d) { return d; });
 
     // Append new bar groups, if required
     bar.enter().append("g").append("rect");
@@ -145,32 +154,25 @@ PrioVis.prototype.updateVis = function(){
     // Add attributes (position) to all bars
     bar
       .attr("class", "bar")
-      .transition()
       .attr("transform", function(d, i) {
         return "translate(" + that.x(that.domain[i]) + ",0)"
       });
       // .attr("transform", function(d, i) { return "translate(" + that.x(d.type) + ",0)"; });
 
     // Remove the extra bars
+
     bar.exit()
       .remove();
 
     // Update all inner rects and texts (both update and enter sets)
 
     bar.select("rect")
-      .transition()
       .attr("height", function(d) {
-          // console.log(d,that.y(d));
-          return that.height - that.y(d);
-      })
-      .style("fill", function(d, i) {
-        return that.color(i);
+        return that.y(d.y0) - that.y(d.y);
       })
       .attr("width", this.x.rangeBand())
       .attr("x", 0)
-      .attr("y", function(d, i) {
-          return that.y(d);
-      });
+      .attr("y", function(d) { return that.y(d.y); });
 
     bar.selectAll("text")
       .transition()
@@ -256,8 +258,7 @@ PrioVis.prototype.filterAndAggregate = function(_filter){
       });
     }));
 
-    console.log(data);
-    return counts;
+    return data;
 };
 
 PrioVis.prototype.mData = function(i) {
