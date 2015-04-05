@@ -25,10 +25,10 @@ AgeVis = function(_parentElement, _data, _metaData){
     this.metaData = _metaData;
     this.displayData = [];
 
-
-
     // TODO: define all constants here
-
+    this.margin = {top: 20, right: 0, bottom: 30, left: 30},
+    this.width = getInnerWidth(this.parentElement) - this.margin.left - this.margin.right ,
+    this.height = 400 - this.margin.top - this.margin.bottom;
 
     this.initVis();
 
@@ -42,16 +42,55 @@ AgeVis.prototype.initVis = function(){
 
     var that = this; // read about the this
 
-
     //TODO: construct or select SVG
     //TODO: create axis and scales
+    this.svg = this.parentElement.append("svg")
+        .attr("width", this.width + this.margin.left + this.margin.right)
+        .attr("height", this.height + this.margin.top + this.margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
+
+    // creates axis and scales
+    this.x = d3.time.scale()
+      .range([0, this.width]);
+
+    this.y = d3.scale.linear()
+      .range([0, this.height]);
+
+    this.xAxis = d3.svg.axis()
+      .scale(this.x)
+      .orient("bottom");
+
+    this.yAxis = d3.svg.axis()
+      .scale(this.y)
+      .orient("left");
+
+    this.area = d3.svg.area()
+      .interpolate("monotone")
+      .x0(0)
+      .x1(function(d) { return that.x(d.count); })
+      .y(function(d) { return that.y(d.age); });
+
+
+      // Add axes visual elements
+      this.svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + this.height + ")");
+
+      this.svg.append("g")
+          .attr("class", "y axis")
+        .append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 6)
+          .attr("dy", ".71em")
+          .style("text-anchor", "end");
 
     // filter, aggregate, modify data
     this.wrangleData(null);
 
     // call the update method
     this.updateVis();
-}
+};
 
 
 /**
@@ -61,6 +100,7 @@ AgeVis.prototype.initVis = function(){
 AgeVis.prototype.wrangleData= function(_filterFunction){
 
     // displayData should hold the data which is visualized
+    // this.displayData = this.filterAndAggregate(_filterFunction);
     this.displayData = this.filterAndAggregate(_filterFunction);
 
     //// you might be able to pass some options,
@@ -70,9 +110,7 @@ AgeVis.prototype.wrangleData= function(_filterFunction){
 
 
 
-
-
-}
+};
 
 
 
@@ -89,8 +127,26 @@ AgeVis.prototype.updateVis = function(){
 
     // TODO: implement...
     // TODO: ...update scales
-    // TODO: ...update graphs
+    this.x.domain(d3.extent(this.displayData, function(d) { return d.count; }));
+    this.y.domain(d3.extent(this.displayData, function(d) { return d.age; }));
 
+    this.svg.select(".y.axis")
+        .call(this.yAxis);
+
+    // // TODO: ...update graphs
+    var path = this.svg.selectAll(".area")
+      .data([this.displayData]);
+
+    path.enter()
+      .append("path")
+      .attr("class", "area");
+
+    path
+      .transition()
+      .attr("d", this.area);
+
+    path.exit()
+      .remove();
 
 }
 
@@ -101,9 +157,20 @@ AgeVis.prototype.updateVis = function(){
  * be defined here.
  * @param selection
  */
-AgeVis.prototype.onSelectionChange= function (selectionStart, selectionEnd){
+AgeVis.prototype.onSelectionChange= function (selectionStart, selectionEnd,empty){
 
     // TODO: call wrangle function
+    if (empty) {
+      this.wrangleData(null);
+    }
+    else {
+      filter = function(t) {
+        if (t >= selectionStart && t <= selectionEnd) {
+          return true;
+        }
+      };
+      this.wrangleData(filter);
+    }
 
     this.updateVis();
 
@@ -140,10 +207,16 @@ AgeVis.prototype.filterAndAggregate = function(_filter){
 
     var that = this;
 
-    // create an array of values for age 0-100
-    var res = d3.range(100).map(function () {
-        return 0;
+    count = d3.range(0,100). map(function(){return 0;});
+    that.data.forEach(function(entry) {
+      if (filter(entry.time)) {
+        entry.ages.forEach(function(d, i) {
+          count[i] += d;
+        });
+      }
     });
+    // create an array of values for age 0-100
+    var res = d3.range(0,100). map(function(i){return {"age": i, "count": count[i]};});
 
 
     // accumulate all values that fulfill the filter criterion
@@ -155,7 +228,3 @@ AgeVis.prototype.filterAndAggregate = function(_filter){
     return res;
 
 }
-
-
-
-

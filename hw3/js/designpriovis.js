@@ -11,6 +11,16 @@ PrioVis = function(_parentElement, _data, _metaData){
     this.metaData = _metaData;
     this.displayData = [];
 
+    this.totals = d3.range(16). map(function(){return 0;});
+    var that = this;
+    this.data
+      .forEach(function(d) {
+        d.prios.forEach(function(e, c) {
+            that.totals[c] += e;
+        });
+      });
+      console.log(this.totals);
+
     // defines constants
     this.margin = {top: 10, right: 70, bottom: 150, left: 80},
     this.width = 800 - this.margin.left - this.margin.right,
@@ -235,6 +245,16 @@ PrioVis.prototype.filterAndAggregate = function(_filter){
         });
       });
 
+    var outOfTotal = that.totals.map(function(d, i) {
+      return that.totals[i] - counts[i];
+    });
+    var data = [counts, this.totals];
+
+    data = data.map(function(d) {
+      return d.map(function(p, i) {
+          return {x:i, y:p, y0:0};
+      });
+    });
 
     return counts;
 };

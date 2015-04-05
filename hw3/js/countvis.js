@@ -58,14 +58,14 @@ CountVis.prototype.initVis = function(){
         .attr("width", this.width + this.margin.left + this.margin.right)
         .attr("height", this.height + this.margin.top + this.margin.bottom)
       .append("g")
-        .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
+        .attr("transform", "translate(" + this.margin.left + ",0)");
 
     // creates axis and scales
     this.x = d3.time.scale()
-      .range([0, this.width]);
+      .range([80, this.width]);
 
     this.y = d3.scale.linear()
-      .range([this.height, 0]);
+      .range([this.height, 50]);
 
     this.xAxis = d3.svg.axis()
       .scale(this.x)
@@ -86,7 +86,7 @@ CountVis.prototype.initVis = function(){
 
       this.brush = d3.svg.brush()
         .on("brush", function() {
-          $(that.eventHandler).trigger("selectionChanged", that.brush.extent());
+          $(that.eventHandler).trigger("selectionChanged", [that.brush.extent()[0], that.brush.extent()[1], that.brush.empty()]);
         });
 
       this.svg.append("g")
@@ -95,7 +95,7 @@ CountVis.prototype.initVis = function(){
       // Add axes visual elements
       this.svg.append("g")
           .attr("class", "x axis")
-          .attr("transform", "translate(0," + this.height + ")");
+          .attr("transform", "translate(-80," + this.height  + ")");
 
       this.svg.append("g")
           .attr("class", "y axis")
