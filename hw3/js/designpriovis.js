@@ -250,12 +250,13 @@ PrioVis.prototype.filterAndAggregate = function(_filter){
     });
     var data = [counts, this.totals];
 
-    data = data.map(function(d) {
+    data = d3.layout.stack()(data.map(function(d) {
       return d.map(function(p, i) {
-          return {x:i, y:p, y0:0};
+          return {x:i, y:p};
       });
-    });
+    }));
 
+    console.log(data);
     return counts;
 };
 
